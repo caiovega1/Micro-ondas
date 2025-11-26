@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Micro_ondas
 {
     public partial class Form1 : Form
     {
         private int timerSeconds = 0;
-
         private EstadoMicroondas estado = EstadoMicroondas.Parado;
-        private int potencia = 10; 
-
+        private int potencia = 10;
         private string progressoAquecimento = "";
         private string charAquecimento = ".";
 
@@ -28,7 +24,11 @@ namespace Micro_ondas
 
             trackBar1.Minimum = 1;
             trackBar1.Maximum = 10;
-            trackBar1.Value = 10;
+            trackBar1.Value = potencia;
+
+            label2.Text = potencia.ToString();
+
+            unlockButton_Click();
         }
 
         private enum EstadoMicroondas
@@ -48,19 +48,19 @@ namespace Micro_ondas
             public string Instrucoes { get; set; }
         }
 
+        // Programas pré-definidos
         private List<ProgramaAquecimento> programas = new List<ProgramaAquecimento>
         {
-            new ProgramaAquecimento { Nome="Pipoca",        Alimento="Pipoca(de micro-ondas)",    TempoSegundos=180, Potencia=7, charAquecimento="*", Instrucoes=" Observar o barulho de estouros do milho, caso houver um intervalo de mais de 10 segundos entre um estouro e outro, interrompa o aquecimento." },
+            new ProgramaAquecimento { Nome="Pipoca",        Alimento="Pipoca(de micro-ondas)",    TempoSegundos=180, Potencia=7, charAquecimento="*", Instrucoes="Observar o barulho de estouros do milho, caso houver um intervalo de mais de 10 segundos entre um estouro e outro, interrompa o aquecimento." },
             new ProgramaAquecimento { Nome="Leite",         Alimento="Leite",                     TempoSegundos=300, Potencia=5, charAquecimento="#", Instrucoes="Cuidado com aquecimento de líquidos, o choque térmico aliado ao movimento do recipiente pode causar fervura imediata causando risco de queimaduras." },
-            new ProgramaAquecimento { Nome="Carnes de Boi", Alimento="Carne em pedaço ou fatias", TempoSegundos=840, Potencia=4, charAquecimento="@", Instrucoes="Interrompa o processo na metade e vire o conteúdo com a parte de baixo para cima para o descongelamento uniforme." },
-            new ProgramaAquecimento { Nome="Frango",        Alimento="Frango (qualquer corte)",   TempoSegundos=480, Potencia=7, charAquecimento="~", Instrucoes="Interrompa o processo na metade e vire o conteúdo com a parte de baixo para cima para o descongelamento uniforme." },
-            new ProgramaAquecimento { Nome="Feijão",        Alimento="Feijão congelado",          TempoSegundos=480, Potencia=9, charAquecimento="%", Instrucoes="Deixe o recipiente destampado e em casos de plástico, cuidado ao retirar o recipiente pois o mesmo pode perder resistência em altas temperaturas." }
+            new ProgramaAquecimento { Nome="Carnes de Boi", Alimento="Carne em pedaço ou fatias", TempoSegundos=840, Potencia=4, charAquecimento="@", Instrucoes="Interrompa o processo na metade e vire o conteúdo para descongelamento uniforme." },
+            new ProgramaAquecimento { Nome="Frango",        Alimento="Frango (qualquer corte)",   TempoSegundos=480, Potencia=7, charAquecimento="~", Instrucoes="Interrompa o processo na metade e vire o conteúdo para descongelamento uniforme." },
+            new ProgramaAquecimento { Nome="Feijão",        Alimento="Feijão congelado",          TempoSegundos=480, Potencia=9, charAquecimento="%", Instrucoes="Deixe o recipiente destampado e cuidado com recipientes plásticos que podem perder resistência." }
         };
 
         private void SelPrograma(ProgramaAquecimento p)
         {
             programaSelecionado = p;
-
             timerSeconds = p.TempoSegundos;
             AtualizarDisplayTempo();
 
@@ -76,9 +76,9 @@ namespace Micro_ondas
             trackBar1.Enabled = false;
 
             lockButton();
-
         }
 
+        // Botões para seleção dos programas pré-definidos
         private void button13_Click(object sender, EventArgs e) => SelPrograma(programas[0]);
         private void button14_Click(object sender, EventArgs e) => SelPrograma(programas[1]);
         private void button15_Click(object sender, EventArgs e) => SelPrograma(programas[2]);
@@ -96,12 +96,10 @@ namespace Micro_ondas
             if (timerSeconds > 0)
             {
                 timerSeconds--;
-
                 AtualizarDisplayTempo();
 
-                progressoAquecimento += new string(charAquecimento[0], potencia);
-
-                progressoAquecimento = progressoAquecimento + ' ';
+                // Atualiza string de aquecimento proporcional à potência
+                progressoAquecimento += new string(charAquecimento[0], potencia) + " ";
                 label4.Text = progressoAquecimento;
 
                 if (timerSeconds == 0)
@@ -117,7 +115,6 @@ namespace Micro_ondas
         {
             int minutos = timerSeconds / 60;
             int segundos = timerSeconds % 60;
-
             textBox1.Text = $"{minutos:00}:{segundos:00}";
         }
 
@@ -130,10 +127,16 @@ namespace Micro_ondas
 
             textBox1.Enabled = true;
             trackBar1.Enabled = true;
+
+            programaSelecionado = null;
+            progressoAquecimento = "";
+            charAquecimento = ".";
+            unlockButton_Click();
         }
 
         private void button12_Click(object sender, EventArgs e)
         {
+            // Pausar / Cancelar
             if (estado == EstadoMicroondas.Executando)
             {
                 timer.Stop();
@@ -145,45 +148,38 @@ namespace Micro_ondas
                     textBox1.Enabled = true;
                     trackBar1.Enabled = true;
                 }
-
-
             }
             else if (estado == EstadoMicroondas.Pausado)
             {
-
-                estado = EstadoMicroondas.Parado;
-                timer.Stop();
-                timerSeconds = 0;
-
-                textBox1.Text = "00:00";
-                label4.Text = "";
-                label1.Text = "";
-                potencia = 10;
-                trackBar1.Value = potencia;
-                label2.Text = potencia.ToString();
-                programaSelecionado = null;
-                charAquecimento = ".";
-
-                unlockButton_Click();
-
-                textBox1.Enabled = true;
-                trackBar1.Enabled = true;
+                ResetarMicroondas();
             }
-            if (estado == EstadoMicroondas.Parado)
+            else if (estado == EstadoMicroondas.Parado)
             {
-                textBox1.Text = "00:00";
-                label4.Text = "";
-                label1.Text = "";
-                potencia = 10;
-                trackBar1.Value = potencia;
-                label2.Text = potencia.ToString();
-                textBox1.Enabled = true;
-                trackBar1.Enabled = true;
-                programaSelecionado = null;
-                charAquecimento = ".";
-
-                unlockButton_Click();
+                ResetarMicroondas();
             }
+        }
+
+        private void ResetarMicroondas()
+        {
+            estado = EstadoMicroondas.Parado;
+            timer.Stop();
+            timerSeconds = 0;
+
+            textBox1.Text = "00:00";
+            label4.Text = "";
+            label1.Text = "";
+            potencia = 10;
+            trackBar1.Value = potencia;
+            label2.Text = potencia.ToString();
+            programaSelecionado = null;
+            charAquecimento = ".";
+
+            unlockButton_Click();
+
+            textBox1.Enabled = true;
+            trackBar1.Enabled = true;
+
+            progressoAquecimento = "";
         }
 
         private void button10_Click(object sender, EventArgs e)
@@ -208,26 +204,14 @@ namespace Micro_ondas
                 return;
             }
 
-            if (estado == EstadoMicroondas.Parado && timerSeconds == 0 )
+            if (estado == EstadoMicroondas.Parado && timerSeconds == 0)
                 timerSeconds += 30;
             else if (estado == EstadoMicroondas.Executando)
                 timerSeconds += 30;
 
             if (!ValidarPotencia() || !ValidarTempo())
             {
-                estado = EstadoMicroondas.Parado;
-                timerSeconds = 0;
-
-                textBox1.Text = "00:00";
-                label4.Text = "";
-                label1.Text = "";
-
-                textBox1.Enabled = true;
-                trackBar1.Enabled = true;
-                programaSelecionado = null;
-                charAquecimento = ".";
-                unlockButton_Click();
-
+                ResetarMicroondas();
                 return;
             }
 
@@ -277,13 +261,10 @@ namespace Micro_ondas
 
         private bool ValidarTempo()
         {
-
             if (programaSelecionado != null)
-            {
                 return true;
-            }
 
-                if (timerSeconds < 1 || timerSeconds > 120)
+            if (timerSeconds < 1 || timerSeconds > 120)
             {
                 timer.Stop();
                 MessageBox.Show("O tempo deve estar entre 1 e 120 segundos.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -295,11 +276,8 @@ namespace Micro_ondas
 
         private bool ValidarPotencia()
         {
-
             if (programaSelecionado != null)
-            {
                 return true;
-            }
 
             if (potencia < 1 || potencia > 10)
             {
@@ -316,8 +294,7 @@ namespace Micro_ondas
             if (estado != EstadoMicroondas.Parado)
                 return;
 
-            string tempoAux = textBox1.Text.Replace(":", "");
-            tempoAux += digito;
+            string tempoAux = textBox1.Text.Replace(":", "") + digito;
 
             if (tempoAux.Length > 4)
                 tempoAux = tempoAux.Substring(tempoAux.Length - 4);
