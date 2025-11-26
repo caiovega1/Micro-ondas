@@ -17,6 +17,7 @@ namespace Micro_ondas
         private string charAquecimento = ".";
 
         private ProgramaAquecimento programaSelecionado = null;
+
         public Form1()
         {
             InitializeComponent();
