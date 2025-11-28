@@ -76,7 +76,7 @@ namespace Micro_ondas
             trackBarPotencia.Enabled = false;
 
             lockNumericButton();
-            lockButton();
+
         }
 
         private void button13_Click(object sender, EventArgs e) => SelPrograma(programas[0]);
@@ -373,6 +373,8 @@ namespace Micro_ondas
             buttonNum7.Enabled = true;
             buttonNum8.Enabled = true;
             buttonNum9.Enabled = true;
+            potencia = 10;
+            labelPotenciaValue.Text = potencia.ToString();
 
         }
 
