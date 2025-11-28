@@ -166,7 +166,7 @@ namespace Micro_ondas
 
             textBoxCounter.Text = "00:00";
             labelProgresso.Text = "";
-            labelInstrucao.Text = "";
+            labelInstrucao.Text = "";   
             potencia = 10;
             trackBarPotencia.Value = potencia;
             labelPotenciaValue.Text = potencia.ToString();
@@ -188,6 +188,7 @@ namespace Micro_ondas
 
             textBoxCounter.Enabled = false;
             trackBarPotencia.Enabled = false;
+
             lockButton();
 
             if (programaSelecionado != null)
@@ -375,7 +376,7 @@ namespace Micro_ondas
             buttonNum9.Enabled = true;
             potencia = 10;
             labelPotenciaValue.Text = potencia.ToString();
-
+            labelInstrucao.Text = "";
         }
 
         private void buttonCadastrar_Click(object sender, EventArgs e)
