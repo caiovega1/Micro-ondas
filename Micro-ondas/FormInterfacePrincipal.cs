@@ -46,7 +46,6 @@ namespace Micro_ondas
             Pausado = 2
         }
 
-        // Programas pré-definidos
         private List<ProgramaAquecimento> programas = new List<ProgramaAquecimento>
         {
             new ProgramaAquecimento { Nome="Pipoca",        Alimento="Pipoca(de micro-ondas)",    TempoSegundos=180, Potencia=7, charAquecimento="*", Instrucoes="Observar o barulho de estouros do milho, caso houver um intervalo de mais de 10 segundos entre um estouro e outro, interrompa o aquecimento." },
@@ -55,7 +54,7 @@ namespace Micro_ondas
             new ProgramaAquecimento { Nome="Frango",        Alimento="Frango (qualquer corte)",   TempoSegundos=480, Potencia=7, charAquecimento="~", Instrucoes="interrompa o processo na metade e vire o conteúdo com a parte de baixo para cima para o descongelamento uniforme." },
             new ProgramaAquecimento { Nome="Feijão",        Alimento="Feijão congelado",          TempoSegundos=480, Potencia=9, charAquecimento="%", Instrucoes="Deixe o recipiente destampado e em casos de plástico, cuidado ao retirar o recipiente pois o mesmo pode perder resistência em altas temperaturas." }
         };
-        // Programas customizáveis pelo usuário
+
         private List<ProgramaAquecimento> programasCustom = new List<ProgramaAquecimento>();
 
 
