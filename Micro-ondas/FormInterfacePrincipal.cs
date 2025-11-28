@@ -1,10 +1,15 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
+using System.Xml;
 
 namespace Micro_ondas
 {
-    public partial class Form1 : Form
+    public partial class FormInterfacePrincipal : Form
     {
         private int timerSeconds = 0;
         private EstadoMicroondas estado = EstadoMicroondas.Parado;
@@ -14,21 +19,24 @@ namespace Micro_ondas
 
         private ProgramaAquecimento programaSelecionado = null;
 
-        public Form1()
+        public FormInterfacePrincipal()
         {
             InitializeComponent();
+            CarregarProgramasCustom();
+            AtualizarDropdownProgramas();
 
             timer = new Timer();
             timer.Interval = 1000;
             timer.Tick += TimerTick;
 
-            trackBar1.Minimum = 1;
-            trackBar1.Maximum = 10;
-            trackBar1.Value = potencia;
+            trackBarPotencia.Minimum = 1;
+            trackBarPotencia.Maximum = 10;
+            trackBarPotencia.Value = potencia;
 
-            label2.Text = potencia.ToString();
+            labelPotenciaValue.Text = potencia.ToString();
 
-            unlockButton_Click();
+            unlockButton();
+            unlockNumericButton();
         }
 
         private enum EstadoMicroondas
@@ -38,25 +46,18 @@ namespace Micro_ondas
             Pausado = 2
         }
 
-        private class ProgramaAquecimento
-        {
-            public string Nome { get; set; }
-            public string Alimento { get; set; }
-            public int TempoSegundos { get; set; }
-            public int Potencia { get; set; }
-            public string charAquecimento { get; set; }
-            public string Instrucoes { get; set; }
-        }
-
         // Programas pré-definidos
         private List<ProgramaAquecimento> programas = new List<ProgramaAquecimento>
         {
             new ProgramaAquecimento { Nome="Pipoca",        Alimento="Pipoca(de micro-ondas)",    TempoSegundos=180, Potencia=7, charAquecimento="*", Instrucoes="Observar o barulho de estouros do milho, caso houver um intervalo de mais de 10 segundos entre um estouro e outro, interrompa o aquecimento." },
             new ProgramaAquecimento { Nome="Leite",         Alimento="Leite",                     TempoSegundos=300, Potencia=5, charAquecimento="#", Instrucoes="Cuidado com aquecimento de líquidos, o choque térmico aliado ao movimento do recipiente pode causar fervura imediata causando risco de queimaduras." },
-            new ProgramaAquecimento { Nome="Carnes de Boi", Alimento="Carne em pedaço ou fatias", TempoSegundos=840, Potencia=4, charAquecimento="@", Instrucoes="Interrompa o processo na metade e vire o conteúdo para descongelamento uniforme." },
-            new ProgramaAquecimento { Nome="Frango",        Alimento="Frango (qualquer corte)",   TempoSegundos=480, Potencia=7, charAquecimento="~", Instrucoes="Interrompa o processo na metade e vire o conteúdo para descongelamento uniforme." },
-            new ProgramaAquecimento { Nome="Feijão",        Alimento="Feijão congelado",          TempoSegundos=480, Potencia=9, charAquecimento="%", Instrucoes="Deixe o recipiente destampado e cuidado com recipientes plásticos que podem perder resistência." }
+            new ProgramaAquecimento { Nome="Carnes de Boi", Alimento="Carne em pedaço ou fatias", TempoSegundos=840, Potencia=4, charAquecimento="@", Instrucoes="Interrompa o processo na metade e vire o conteúdo com a parte de baixo para cima para o descongelamento uniforme." },
+            new ProgramaAquecimento { Nome="Frango",        Alimento="Frango (qualquer corte)",   TempoSegundos=480, Potencia=7, charAquecimento="~", Instrucoes="interrompa o processo na metade e vire o conteúdo com a parte de baixo para cima para o descongelamento uniforme." },
+            new ProgramaAquecimento { Nome="Feijão",        Alimento="Feijão congelado",          TempoSegundos=480, Potencia=9, charAquecimento="%", Instrucoes="Deixe o recipiente destampado e em casos de plástico, cuidado ao retirar o recipiente pois o mesmo pode perder resistência em altas temperaturas." }
         };
+        // Programas customizáveis pelo usuário
+        private List<ProgramaAquecimento> programasCustom = new List<ProgramaAquecimento>();
+
 
         private void SelPrograma(ProgramaAquecimento p)
         {
@@ -65,20 +66,20 @@ namespace Micro_ondas
             AtualizarDisplayTempo();
 
             potencia = p.Potencia;
-            trackBar1.Value = potencia;
-            label2.Text = potencia.ToString();
+            trackBarPotencia.Value = potencia;
+            labelPotenciaValue.Text = potencia.ToString();
 
-            label1.Text = p.Instrucoes;
+            labelInstrucao.Text = p.Instrucoes;
 
             charAquecimento = p.charAquecimento;
 
-            textBox1.Enabled = false;
-            trackBar1.Enabled = false;
+            textBoxCounter.Enabled = false;
+            trackBarPotencia.Enabled = false;
 
+            lockNumericButton();
             lockButton();
         }
 
-        // Botões para seleção dos programas pré-definidos
         private void button13_Click(object sender, EventArgs e) => SelPrograma(programas[0]);
         private void button14_Click(object sender, EventArgs e) => SelPrograma(programas[1]);
         private void button15_Click(object sender, EventArgs e) => SelPrograma(programas[2]);
@@ -98,9 +99,8 @@ namespace Micro_ondas
                 timerSeconds--;
                 AtualizarDisplayTempo();
 
-                // Atualiza string de aquecimento proporcional à potência
                 progressoAquecimento += new string(charAquecimento[0], potencia) + " ";
-                label4.Text = progressoAquecimento;
+                labelProgresso.Text = progressoAquecimento;
 
                 if (timerSeconds == 0)
                     FinalizarAquecimento();
@@ -115,7 +115,7 @@ namespace Micro_ondas
         {
             int minutos = timerSeconds / 60;
             int segundos = timerSeconds % 60;
-            textBox1.Text = $"{minutos:00}:{segundos:00}";
+            textBoxCounter.Text = $"{minutos:00}:{segundos:00}";
         }
 
         private void FinalizarAquecimento()
@@ -123,30 +123,30 @@ namespace Micro_ondas
             timer.Stop();
             estado = EstadoMicroondas.Parado;
 
-            label4.Text = progressoAquecimento + " Aquecimento concluído";
+            labelProgresso.Text = progressoAquecimento + " Aquecimento concluído";
 
-            textBox1.Enabled = true;
-            trackBar1.Enabled = true;
+            textBoxCounter.Enabled = true;
+            trackBarPotencia.Enabled = true;
 
             programaSelecionado = null;
             progressoAquecimento = "";
             charAquecimento = ".";
-            unlockButton_Click();
+            unlockButton();
+            unlockNumericButton();
         }
 
         private void button12_Click(object sender, EventArgs e)
         {
-            // Pausar / Cancelar
             if (estado == EstadoMicroondas.Executando)
             {
                 timer.Stop();
                 estado = EstadoMicroondas.Pausado;
-                label4.Text = "Pausado";
+                labelProgresso.Text = "Pausado";
 
                 if (programaSelecionado == null)
                 {
-                    textBox1.Enabled = true;
-                    trackBar1.Enabled = true;
+                    textBoxCounter.Enabled = true;
+                    trackBarPotencia.Enabled = true;
                 }
             }
             else if (estado == EstadoMicroondas.Pausado)
@@ -165,19 +165,20 @@ namespace Micro_ondas
             timer.Stop();
             timerSeconds = 0;
 
-            textBox1.Text = "00:00";
-            label4.Text = "";
-            label1.Text = "";
+            textBoxCounter.Text = "00:00";
+            labelProgresso.Text = "";
+            labelInstrucao.Text = "";
             potencia = 10;
-            trackBar1.Value = potencia;
-            label2.Text = potencia.ToString();
+            trackBarPotencia.Value = potencia;
+            labelPotenciaValue.Text = potencia.ToString();
             programaSelecionado = null;
             charAquecimento = ".";
 
-            unlockButton_Click();
+            unlockButton();
+            unlockNumericButton();
 
-            textBox1.Enabled = true;
-            trackBar1.Enabled = true;
+            textBoxCounter.Enabled = true;
+            trackBarPotencia.Enabled = true;
 
             progressoAquecimento = "";
         }
@@ -186,8 +187,8 @@ namespace Micro_ondas
         {
             LerTempoDaTela();
 
-            textBox1.Enabled = false;
-            trackBar1.Enabled = false;
+            textBoxCounter.Enabled = false;
+            trackBarPotencia.Enabled = false;
             lockButton();
 
             if (programaSelecionado != null)
@@ -219,7 +220,7 @@ namespace Micro_ondas
             {
                 estado = EstadoMicroondas.Executando;
                 timer.Start();
-                label4.Text = "Aquecendo";
+                labelProgresso.Text = "Aquecendo";
             }
             else
             {
@@ -231,7 +232,7 @@ namespace Micro_ondas
         {
             try
             {
-                string[] partes = textBox1.Text.Split(':');
+                string[] partes = textBoxCounter.Text.Split(':');
                 int minutos = int.Parse(partes[0]);
                 int segundos = int.Parse(partes[1]);
 
@@ -251,12 +252,12 @@ namespace Micro_ondas
             estado = EstadoMicroondas.Executando;
             timer.Start();
 
-            textBox1.Enabled = false;
-            trackBar1.Enabled = false;
+            textBoxCounter.Enabled = false;
+            trackBarPotencia.Enabled = false;
             lockButton();
 
             progressoAquecimento = "";
-            label4.Text = "Aquecendo...";
+            labelProgresso.Text = "Aquecendo...";
         }
 
         private bool ValidarTempo()
@@ -290,11 +291,11 @@ namespace Micro_ondas
 
         private void AtualizaTimer(string digito)
         {
-            label4.Text = "";
+            labelProgresso.Text = "";
             if (estado != EstadoMicroondas.Parado)
                 return;
 
-            string tempoAux = textBox1.Text.Replace(":", "") + digito;
+            string tempoAux = textBoxCounter.Text.Replace(":", "") + digito;
 
             if (tempoAux.Length > 4)
                 tempoAux = tempoAux.Substring(tempoAux.Length - 4);
@@ -305,7 +306,7 @@ namespace Micro_ondas
             int s = int.Parse(seg);
             if (s > 59) s = 59;
 
-            textBox1.Text = $"{min}:{s:00}";
+            textBoxCounter.Text = $"{min}:{s:00}";
         }
 
         private void button1_Click(object sender, EventArgs e) => AtualizaTimer("1");
@@ -321,28 +322,141 @@ namespace Micro_ondas
 
         private void trackBar1_Scroll(object sender, EventArgs e)
         {
-            label4.Text = "";
-            label1.Text = "";
-            potencia = trackBar1.Value;
-            label2.Text = potencia.ToString();
+            labelProgresso.Text = "";
+            labelInstrucao.Text = "";
+            potencia = trackBarPotencia.Value;
+            labelPotenciaValue.Text = potencia.ToString();
         }
 
         private void lockButton()
         {
-            button13.Enabled = false;
-            button14.Enabled = false;
-            button15.Enabled = false;
-            button16.Enabled = false;
-            button17.Enabled = false;
+            buttonPipoca.Enabled = false;
+            buttonLeite.Enabled = false;
+            buttonCarneBoi.Enabled = false;
+            buttonFrango.Enabled = false;
+            buttonFeijao.Enabled = false;
+            comboProgramas.Enabled = false;
         }
 
-        private void unlockButton_Click()
+        private void unlockButton()
         {
-            button13.Enabled = true;
-            button14.Enabled = true;
-            button15.Enabled = true;
-            button16.Enabled = true;
-            button17.Enabled = true;
+            buttonPipoca.Enabled = true;
+            buttonLeite.Enabled = true;
+            buttonCarneBoi.Enabled = true;
+            buttonFrango.Enabled = true;
+            buttonFeijao.Enabled = true;
+            comboProgramas.Enabled = true;
+
+        }
+        private void lockNumericButton()
+        {
+            buttonNum0.Enabled = false;
+            buttonNum1.Enabled = false;
+            buttonNum2.Enabled = false;
+            buttonNum3.Enabled = false;
+            buttonNum4.Enabled = false;
+            buttonNum5.Enabled = false;
+            buttonNum6.Enabled = false;
+            buttonNum7.Enabled = false;
+            buttonNum8.Enabled = false;
+            buttonNum9.Enabled = false;
+
+        }
+        private void unlockNumericButton()
+        {
+            buttonNum0.Enabled = true;
+            buttonNum1.Enabled = true;
+            buttonNum2.Enabled = true;
+            buttonNum3.Enabled = true;
+            buttonNum4.Enabled = true;
+            buttonNum5.Enabled = true;
+            buttonNum6.Enabled = true;
+            buttonNum7.Enabled = true;
+            buttonNum8.Enabled = true;
+            buttonNum9.Enabled = true;
+
+        }
+
+        private void buttonCadastrar_Click(object sender, EventArgs e)
+        {
+            var lista = programas.Concat(programasCustom).ToList();
+
+            var form = new FormCadastroPrograma(lista);
+            if (form.ShowDialog() == DialogResult.OK)
+            {
+                programasCustom.Add(form.NovoPrograma);
+                SalvarPrograma();
+                AtualizarDropdownProgramas();
+                comboProgramas.SelectedIndex = comboProgramas.Items.Count - 1;
+            }
+        }
+        private string caminhoJson = "programas_custom.json";
+
+        private void SalvarPrograma()
+        {
+            string json = JsonConvert.SerializeObject(programasCustom, Newtonsoft.Json.Formatting.Indented);
+            File.WriteAllText(caminhoJson, json);
+        }
+        private void CarregarProgramasCustom()
+        {
+            if (!File.Exists(caminhoJson))
+                return;
+
+            try
+            {
+                string json = File.ReadAllText(caminhoJson);
+                programasCustom = JsonConvert.DeserializeObject<List<ProgramaAquecimento>>(json)
+                                  ?? new List<ProgramaAquecimento>();
+            }
+            catch
+            {
+                programasCustom = new List<ProgramaAquecimento>();
+            }
+        }
+        private void AtualizarDropdownProgramas()
+        {
+            comboProgramas.Items.Clear();
+
+            foreach (var p in programasCustom)
+            {
+                comboProgramas.Items.Add(new ItemPrograma
+                {
+                    Programa = p,
+                    Custom = true
+                });
+            }
+        }
+
+        private void comboProgramas_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0) return;
+
+            e.DrawBackground();
+
+            var item = (ItemPrograma)comboProgramas.Items[e.Index];
+
+            Font fonte = item.Custom
+                ? new Font(e.Font, FontStyle.Italic)
+                : e.Font;
+
+            e.Graphics.DrawString(
+                item.Programa.Nome,
+                fonte,
+                new SolidBrush(e.ForeColor),
+                e.Bounds
+            );
+
+            e.DrawFocusRectangle();
+        }
+
+        private void comboProgramas_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboProgramas.SelectedIndex < 0)
+                return;
+
+            var item = (ItemPrograma)comboProgramas.SelectedItem;
+
+            SelPrograma(item.Programa);
         }
     }
 }
